@@ -1,0 +1,14 @@
+{
+  "name": "techedelic-interactive",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "npx serve -s . -l 3000",
+    "dev": "npx serve -s . -l 3000",
+    "build": "echo \"No build step (static site)\"",
+    "vercel-build": "echo \"No build step (static site)\""
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
