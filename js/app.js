@@ -70,12 +70,95 @@ function wireControls(){
   const smoothAlpha = document.getElementById('ctrlSmoothAlpha');
   const beatThresh = document.getElementById('ctrlBeatThresh');
   const monitor = document.getElementById('ctrlMonitor');
-  if(glowGain && window.app.visuals) glowGain.addEventListener('input', (e)=>{ window.app.visuals.setGlowGain(e.target.value); });
-  if(glowSmooth && window.app.visuals) glowSmooth.addEventListener('input', (e)=>{ window.app.visuals.setGlowSmoothing(e.target.value); });
-  if(sensitivity && window.app.audioEngine) sensitivity.addEventListener('input', (e)=>{ window.app.audioEngine.setSensitivity(Number(e.target.value)); });
-  if(smoothAlpha && window.app.audioEngine) smoothAlpha.addEventListener('input', (e)=>{ window.app.audioEngine.setSmoothingAlpha(Number(e.target.value)); });
-  if(beatThresh && window.app.audioEngine) beatThresh.addEventListener('input', (e)=>{ window.app.audioEngine.setBeatThreshold(Number(e.target.value)); });
-  if(monitor && window.app.audioEngine) monitor.addEventListener('change', (e)=>{ window.app.audioEngine.enableMonitor(e.target.checked); });
+  const preset = document.getElementById('ctrlPreset');
+  const toggle = document.getElementById('ctrlToggle');
+  const controlsPanel = document.getElementById('controlsPanel');
+  const controlsBody = document.getElementById('controlsBody');
+
+  // Only show panel in dev (localhost) or when window.__DEV__ is true
+  try{
+    const isDev = (window.__DEV__ === true) || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if(!isDev && controlsPanel) controlsPanel.style.display = 'none';
+  }catch(e){}
+
+  // Presets
+  const PRESETS = {
+    subtle: { glowGain:0.9, glowSmooth:0.40, sensitivity:0.9, smoothAlpha:0.12, beatThreshold:1.6 },
+    punchy: { glowGain:2.2, glowSmooth:0.08, sensitivity:1.4, smoothAlpha:0.08, beatThreshold:1.2 },
+    dream:  { glowGain:1.4, glowSmooth:0.28, sensitivity:1.0, smoothAlpha:0.20, beatThreshold:1.8 }
+  };
+
+  const CONTROLS_KEY = 'techedelic.controls';
+
+  function loadControls(){
+    try{
+      const raw = localStorage.getItem(CONTROLS_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ return null; }
+  }
+
+  function saveControls(obj){ try{ localStorage.setItem(CONTROLS_KEY, JSON.stringify(obj)); }catch(e){} }
+
+  function applyToUI(obj){
+    if(!obj) return;
+    if(glowGain) glowGain.value = obj.glowGain ?? glowGain.value;
+    if(glowSmooth) glowSmooth.value = obj.glowSmooth ?? glowSmooth.value;
+    if(sensitivity) sensitivity.value = obj.sensitivity ?? sensitivity.value;
+    if(smoothAlpha) smoothAlpha.value = obj.smoothAlpha ?? smoothAlpha.value;
+    if(beatThresh) beatThresh.value = obj.beatThreshold ?? beatThresh.value;
+    if(monitor) monitor.checked = !!obj.monitor;
+  }
+
+  function readFromUI(){
+    return {
+      glowGain: Number(glowGain.value),
+      glowSmooth: Number(glowSmooth.value),
+      sensitivity: Number(sensitivity.value),
+      smoothAlpha: Number(smoothAlpha.value),
+      beatThreshold: Number(beatThresh.value),
+      monitor: !!monitor.checked
+    };
+  }
+
+  // initialize from saved or default
+  const saved = loadControls();
+  if(saved) applyToUI(saved);
+
+  // collapse toggle behavior
+  if(toggle && controlsPanel && controlsBody){
+    const collapsed = saved && saved.collapsed;
+    if(collapsed) { controlsPanel.setAttribute('data-collapsed','true'); controlsBody.style.display='none'; toggle.textContent='▸'; }
+    toggle.addEventListener('click', ()=>{
+      const isCollapsed = controlsPanel.getAttribute('data-collapsed') === 'true';
+      controlsPanel.setAttribute('data-collapsed', String(!isCollapsed));
+      controlsBody.style.display = isCollapsed ? 'block' : 'none';
+      toggle.textContent = isCollapsed ? '▾' : '▸';
+      const current = loadControls() || {};
+      current.collapsed = !isCollapsed;
+      saveControls(current);
+    });
+  }
+  if(glowGain && window.app.visuals) glowGain.addEventListener('input', (e)=>{ window.app.visuals.setGlowGain(e.target.value); saveControls(Object.assign(loadControls()||{}, readFromUI())); });
+  if(glowSmooth && window.app.visuals) glowSmooth.addEventListener('input', (e)=>{ window.app.visuals.setGlowSmoothing(e.target.value); saveControls(Object.assign(loadControls()||{}, readFromUI())); });
+  if(sensitivity && window.app.audioEngine) sensitivity.addEventListener('input', (e)=>{ window.app.audioEngine.setSensitivity(Number(e.target.value)); saveControls(Object.assign(loadControls()||{}, readFromUI())); });
+  if(smoothAlpha && window.app.audioEngine) smoothAlpha.addEventListener('input', (e)=>{ window.app.audioEngine.setSmoothingAlpha(Number(e.target.value)); saveControls(Object.assign(loadControls()||{}, readFromUI())); });
+  if(beatThresh && window.app.audioEngine) beatThresh.addEventListener('input', (e)=>{ window.app.audioEngine.setBeatThreshold(Number(e.target.value)); saveControls(Object.assign(loadControls()||{}, readFromUI())); });
+  if(monitor && window.app.audioEngine) monitor.addEventListener('change', (e)=>{ window.app.audioEngine.enableMonitor(e.target.checked); saveControls(Object.assign(loadControls()||{}, readFromUI())); });
+
+  if(preset){
+    preset.addEventListener('change', (ev)=>{
+      const v = ev.target.value;
+      if(v === 'custom') return;
+      const p = PRESETS[v];
+      if(!p) return;
+      applyToUI(Object.assign({}, p, { monitor: false }));
+      // apply to components
+      if(window.app.visuals) { window.app.visuals.setGlowGain(p.glowGain); window.app.visuals.setGlowSmoothing(p.glowSmooth); }
+      if(window.app.audioEngine){ window.app.audioEngine.setSensitivity(p.sensitivity); window.app.audioEngine.setSmoothingAlpha(p.smoothAlpha); window.app.audioEngine.setBeatThreshold(p.beatThreshold); }
+      saveControls(Object.assign(loadControls()||{}, readFromUI()));
+    });
+  }
 }
 setTimeout(wireControls, 300);
 
