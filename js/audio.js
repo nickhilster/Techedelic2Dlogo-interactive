@@ -40,6 +40,7 @@ export class AudioEngine {
 
     this.audioElement = null;
     this._sensitivity = typeof opts.sensitivity === 'number' ? opts.sensitivity : 1.0;
+    this.currentSource = 'idle'; // 'idle' | 'mic' | 'demo' | 'file'
   }
 
   // configuration helpers
@@ -71,6 +72,7 @@ export class AudioEngine {
 
   async startDemo(){
     await this._ensureContext();
+    await this.stopCurrentSource();
     if(this.audioElement){ this.audioElement.pause(); this.audioElement.src=''; this.audioElement=null; }
     const a = document.createElement('audio');
     a.src = this.demoUrl; a.loop = true; a.crossOrigin='anonymous';
@@ -78,10 +80,14 @@ export class AudioEngine {
     this.audioElement = a;
     const src = this.context.createMediaElementSource(a);
     this._connectSourceNode(src);
+    this.currentSource = 'demo';
+    // demo should be audible by default
+    this.enableMonitor(true);
   }
 
   async startFromFile(fileOrUrl){
     await this._ensureContext();
+    await this.stopCurrentSource();
     const url = typeof fileOrUrl === 'string' ? fileOrUrl : URL.createObjectURL(fileOrUrl);
     if(this.audioElement) this.audioElement.pause();
     const a = document.createElement('audio'); a.src = url; a.loop = true; a.crossOrigin='anonymous';
@@ -89,10 +95,13 @@ export class AudioEngine {
     this.audioElement = a;
     const src = this.context.createMediaElementSource(a);
     this._connectSourceNode(src);
+    this.currentSource = 'file';
+    this.enableMonitor(true);
   }
 
   async startMic(){
     await this._ensureContext();
+    await this.stopCurrentSource();
     // request mic stream and keep reference so we can stop it later
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this._micStream = stream;
@@ -100,6 +109,7 @@ export class AudioEngine {
     // when using mic, do not enable monitor by default to avoid feedback
     this._connectSourceNode(mic);
     this.enableMonitor(false);
+    this.currentSource = 'mic';
   }
 
   _connectSourceNode(node){
@@ -116,6 +126,22 @@ export class AudioEngine {
     try{ this.sourceNode.connect(this.analyser); }catch(e){}
     try{ this.sourceNode.connect(this.monitorGain); }catch(e){}
     this._startLoop();
+  }
+
+  // Stop and cleanup whichever source is active
+  async stopCurrentSource(){
+    // stop RAF loop
+    if(this._rafId){ cancelAnimationFrame(this._rafId); this._rafId = null; }
+    // stop audio element if present
+    try{ if(this.audioElement){ this.audioElement.pause(); try{ this.audioElement.src=''; }catch(e){} this.audioElement = null; } }catch(e){}
+    // stop mic stream tracks
+    try{ if(this._micStream && this._micStream.getTracks){ this._micStream.getTracks().forEach(t=>{ try{ t.stop(); }catch(e){} }); this._micStream = null; } }catch(e){}
+    // disconnect source node
+    try{ if(this.sourceNode && this.sourceNode.disconnect) this.sourceNode.disconnect(); }catch(e){}
+    this.sourceNode = null;
+    this.currentSource = 'idle';
+    // mute monitor by default
+    this.enableMonitor(false);
   }
 
   // Control whether the current source is audibly monitored (useful for demo/file playback).

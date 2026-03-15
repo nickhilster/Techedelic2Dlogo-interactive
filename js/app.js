@@ -73,13 +73,18 @@ startBtn.addEventListener('click', async ()=>{
 });
 
 demoBtn.addEventListener('click', ()=>{
-  // start demo audio
   (async()=>{
     try{
       await audioEngine.startOnUserGesture();
-      await audioEngine.startDemo();
-      demoBtn.disabled = true; demoBtn.textContent = 'Demo';
-      setAudioStatus('Demo');
+      if(audioEngine.currentSource === 'demo'){
+        await audioEngine.stopCurrentSource();
+        demoBtn.textContent = 'Demo';
+        setAudioStatus('Idle');
+      } else {
+        await audioEngine.startDemo();
+        demoBtn.textContent = 'Demo (on)';
+        setAudioStatus('Demo');
+      }
     }catch(e){ console.error('Demo start failed', e); }
   })();
 });
@@ -88,9 +93,15 @@ demoBtn.addEventListener('click', ()=>{
 if (micBtn) micBtn.addEventListener('click', async ()=>{
   try{
     await audioEngine.startOnUserGesture();
-    await audioEngine.startMic();
-    micBtn.disabled = true; micBtn.textContent = 'Mic';
-    setAudioStatus('Mic');
+    if(audioEngine.currentSource === 'mic'){
+      await audioEngine.stopCurrentSource();
+      micBtn.textContent = 'Mic';
+      setAudioStatus('Idle');
+    } else {
+      await audioEngine.startMic();
+      micBtn.textContent = 'Mic (on)';
+      setAudioStatus('Mic');
+    }
   }catch(e){ console.error('Mic start failed', e); }
 });
 
