@@ -17,6 +17,10 @@ export class Visuals {
     this.maxScale = opts.maxScale || 1.15;
     this.bloomBase = (this.app.sceneAPI && this.app.sceneAPI.bloomPass && this.app.sceneAPI.bloomPass.strength) || 1.0;
     this.bloomMax = opts.bloomMax || 3.0;
+    // glow mapping params
+    this.glowGain = typeof opts.glowGain === 'number' ? opts.glowGain : 1.6;
+    this.glowAlpha = typeof opts.glowAlpha === 'number' ? opts.glowAlpha : 0.2; // smoothing for glow
+    this._smoothedGlow = 0;
 
     this._bandsUnsub = null;
     this._beatUnsub = null;
@@ -68,9 +72,15 @@ export class Visuals {
     // Edge glow reaction: map treble to edge glow (keeps geometry intact)
     try{
       const lc = this.app.logoCube;
-      if(lc && typeof lc.setEdgeGlow === 'function') lc.setEdgeGlow(Math.min(1, (b.treble||0) * 1.6));
+      const targetGlow = Math.min(1, (b.treble||0) * this.glowGain);
+      this._smoothedGlow = this._smoothedGlow * (1 - this.glowAlpha) + targetGlow * this.glowAlpha;
+      if(lc && typeof lc.setEdgeGlow === 'function') lc.setEdgeGlow(this._smoothedGlow);
     }catch(e){}
   }
+
+  // Controls for tuning glow
+  setGlowGain(g){ this.glowGain = Math.max(0, Number(g) || 0); }
+  setGlowSmoothing(a){ this.glowAlpha = Math.max(0, Math.min(1, Number(a) || 0)); }
 
   _onBeat() {
     // small pulse
