@@ -1,0 +1,43 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Test Visuals</title></head><body>
+<h2>Visuals Module Test</h2>
+<pre id="out"></pre>
+<script type="module">
+import { Visuals } from '../js/visuals.js';
+
+const out = msg => { const p = document.getElementById('out'); p.textContent += msg + '\n'; };
+
+// Fake audio engine
+function makeFakeAudio(){
+  const bandsCbs = new Set();
+  const beatCbs = new Set();
+  return {
+    onBands(cb){ bandsCbs.add(cb); return ()=>bandsCbs.delete(cb); },
+    onBeat(cb){ beatCbs.add(cb); return ()=>beatCbs.delete(cb); },
+    emitBands(payload){ bandsCbs.forEach(cb=>cb(payload)); },
+    emitBeat(){ beatCbs.forEach(cb=>cb()); }
+  };
+}
+
+const fakeAudio = makeFakeAudio();
+
+// fake logoCube
+const fakeLogo = { lastScale:null, lastPulse:null, voxels: new Array(19).fill(0).map((_,i)=>({index:i})), setScale(s){ this.lastScale = s; }, pulseVoxel(i,str){ this.lastPulse = {i,str}; } };
+window.app = { logoCube: fakeLogo, particles: { setIntensity(v){ /* ignore */ }, burst(v){ /* ignore */ } }, sceneAPI:{}};
+
+const visuals = new Visuals(fakeAudio, { app: window.app });
+
+// Test: emit high bass and ensure setScale is called >1
+fakeAudio.emitBands({ bass: 1.0, mid:0, treble:0 });
+setTimeout(()=>{
+  if(fakeLogo.lastScale && fakeLogo.lastScale > 1.0){ out('PASS: cube scaled to ' + fakeLogo.lastScale); } else { out('FAIL: cube did not scale as expected: ' + fakeLogo.lastScale); }
+  // Test beat
+  fakeAudio.emitBeat();
+  setTimeout(()=>{
+    if(fakeLogo.lastPulse) out('PASS: pulse recorded idx=' + fakeLogo.lastPulse.i + ' str=' + fakeLogo.lastPulse.str);
+    else out('FAIL: pulse not recorded');
+  }, 100);
+}, 120);
+
+</script>
+</body></html>

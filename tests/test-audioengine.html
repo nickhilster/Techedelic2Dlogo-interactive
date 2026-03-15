@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Test AudioEngine</title></head><body>
+<h2>AudioEngine Smoke Test</h2>
+<pre id="out"></pre>
+<script type="module">
+import AudioEngine from '../js/audio.js';
+const out = s=>document.getElementById('out').textContent += s + '\n';
+
+const e = new AudioEngine();
+let ok = true;
+if(typeof e.onBands !== 'function') { out('FAIL: onBands missing'); ok=false; }
+if(typeof e.onBeat !== 'function') { out('FAIL: onBeat missing'); ok=false; }
+if(typeof e.setSmoothingAlpha !== 'function') { out('FAIL: setSmoothingAlpha missing'); ok=false; }
+if(typeof e.setBeatThreshold !== 'function') { out('FAIL: setBeatThreshold missing'); ok=false; }
+if(ok) out('PASS: API surface present');
+
+// test subscription add/remove
+const unsub = e.onBands(()=>{});
+if(typeof unsub === 'function') out('PASS: onBands returns unsubscribe'); else out('FAIL: onBands did not return unsubscribe');
+
+// test setters
+try{ e.setSmoothingAlpha(0.2); e.setBeatThreshold(1.2); e.setSensitivity(1.1); out('PASS: setters callable'); }catch(err){ out('FAIL: setters threw ' + err); }
+
+</script>
+</body></html>
