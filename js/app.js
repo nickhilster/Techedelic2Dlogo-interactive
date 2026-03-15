@@ -62,6 +62,23 @@ sceneAPI.onUpdate((dt)=>{
   if (window.app.particles && typeof window.app.particles.update === 'function') window.app.particles.update(dt);
 });
 
+// Wire controls panel to audio/visual params
+function wireControls(){
+  const glowGain = document.getElementById('ctrlGlowGain');
+  const glowSmooth = document.getElementById('ctrlGlowSmooth');
+  const sensitivity = document.getElementById('ctrlSensitivity');
+  const smoothAlpha = document.getElementById('ctrlSmoothAlpha');
+  const beatThresh = document.getElementById('ctrlBeatThresh');
+  const monitor = document.getElementById('ctrlMonitor');
+  if(glowGain && window.app.visuals) glowGain.addEventListener('input', (e)=>{ window.app.visuals.setGlowGain(e.target.value); });
+  if(glowSmooth && window.app.visuals) glowSmooth.addEventListener('input', (e)=>{ window.app.visuals.setGlowSmoothing(e.target.value); });
+  if(sensitivity && window.app.audioEngine) sensitivity.addEventListener('input', (e)=>{ window.app.audioEngine.setSensitivity(Number(e.target.value)); });
+  if(smoothAlpha && window.app.audioEngine) smoothAlpha.addEventListener('input', (e)=>{ window.app.audioEngine.setSmoothingAlpha(Number(e.target.value)); });
+  if(beatThresh && window.app.audioEngine) beatThresh.addEventListener('input', (e)=>{ window.app.audioEngine.setBeatThreshold(Number(e.target.value)); });
+  if(monitor && window.app.audioEngine) monitor.addEventListener('change', (e)=>{ window.app.audioEngine.enableMonitor(e.target.checked); });
+}
+setTimeout(wireControls, 300);
+
 startBtn.addEventListener('click', async ()=>{
   try{
     // resume audio context on user gesture, then start scene
