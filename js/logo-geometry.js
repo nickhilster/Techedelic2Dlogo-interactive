@@ -30,6 +30,8 @@ export class LogoCube {
       this.group.add(mesh);
       this.group.add(edges);
       this.voxels.push({ mesh, edges, position: mesh.position.clone(), index: i });
+      // store base edge color for glow blending
+      this.voxels[this.voxels.length-1].baseEdgeColor = edges.material.color.clone();
       this.pulseStates.set(i, { t:0, strength:0 });
     });
 
@@ -86,7 +88,21 @@ export class LogoCube {
       } else {
         c = z > 0 ? (colors.accent3 || c) : (colors.primary || c);
       }
-      try{ v.edges.material.color.set(c); }catch(e){ v.edges.material.color.set(0xffffff); }
+      try{ v.edges.material.color.set(c); v.baseEdgeColor = v.edges.material.color.clone(); }catch(e){ v.edges.material.color.set(0xffffff); v.baseEdgeColor = v.edges.material.color.clone(); }
+    });
+  }
+
+  // Set a glow amount 0..1 which blends the stored base edge color towards white
+  setEdgeGlow(amount){
+    const a = Math.max(0, Math.min(1, amount || 0));
+    this.voxels.forEach(v=>{
+      try{
+        const base = (v.baseEdgeColor && v.baseEdgeColor.clone) ? v.baseEdgeColor.clone() : new THREE.Color(0xffffff);
+        const target = new THREE.Color(0xffffff);
+        base.lerp(target, a);
+        v.edges.material.color.copy(base);
+        v.edges.material.opacity = 0.6 + a * 0.4;
+      }catch(e){}
     });
   }
 }

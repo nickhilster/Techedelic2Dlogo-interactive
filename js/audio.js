@@ -93,18 +93,33 @@ export class AudioEngine {
 
   async startMic(){
     await this._ensureContext();
+    // request mic stream and keep reference so we can stop it later
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    this._micStream = stream;
     const mic = this.context.createMediaStreamSource(stream);
+    // when using mic, do not enable monitor by default to avoid feedback
     this._connectSourceNode(mic);
+    this.enableMonitor(false);
   }
 
   _connectSourceNode(node){
-    if(this.sourceNode && this.sourceNode.disconnect) this.sourceNode.disconnect();
+    // Disconnect previous source safely
+    try{ if(this.sourceNode && this.sourceNode.disconnect) this.sourceNode.disconnect(); }catch(e){}
     this.sourceNode = node;
-    this.sourceNode.connect(this.analyser);
-    this.analyser.connect(this.context.destination);
+    // Ensure monitor gain exists and is connected to destination
+    if(!this.monitorGain){
+      this.monitorGain = this.context.createGain();
+      this.monitorGain.gain.value = 0; // muted by default
+      this.monitorGain.connect(this.context.destination);
+    }
+    // Connect source to analyser and to monitorGain (monitor controlled separately)
+    try{ this.sourceNode.connect(this.analyser); }catch(e){}
+    try{ this.sourceNode.connect(this.monitorGain); }catch(e){}
     this._startLoop();
   }
+
+  // Control whether the current source is audibly monitored (useful for demo/file playback).
+  enableMonitor(enabled = true){ if(this.monitorGain) this.monitorGain.gain.value = enabled ? 1 : 0; }
 
   _startLoop(){
     if(this._rafId) return;

@@ -65,6 +65,11 @@ export class Visuals {
       const intensity = 0.2 + Math.min(1, treble) * 1.4;
       try { p.setIntensity(intensity); } catch (e) {}
     }
+    // Edge glow reaction: map treble to edge glow (keeps geometry intact)
+    try{
+      const lc = this.app.logoCube;
+      if(lc && typeof lc.setEdgeGlow === 'function') lc.setEdgeGlow(Math.min(1, (b.treble||0) * 1.6));
+    }catch(e){}
   }
 
   _onBeat() {
