@@ -121,6 +121,29 @@ function wireControls(){
     };
   }
 
+  // Preset storage helpers (project-level presets)
+  const PRESETS_KEY = 'techedelic.presets';
+  function loadSavedPresets(){ try{ const p = JSON.parse(localStorage.getItem(PRESETS_KEY) || '{}'); return p || {}; }catch(e){ return {}; } }
+  function savePreset(name, obj){ if(!name) return; const all = loadSavedPresets(); all[name] = obj; try{ localStorage.setItem(PRESETS_KEY, JSON.stringify(all)); }catch(e){} }
+  function deletePreset(name){ const all = loadSavedPresets(); if(all[name]){ delete all[name]; try{ localStorage.setItem(PRESETS_KEY, JSON.stringify(all)); }catch(e){} } }
+  function getPresetList(){ const saved = loadSavedPresets(); return Object.assign({}, PRESETS, saved); }
+
+  function refreshPresetOptions(){
+    if(!preset) return;
+    const saved = loadSavedPresets();
+    // clear options except 'custom'
+    const current = preset.value;
+    preset.innerHTML = '';
+    const optCustom = document.createElement('option'); optCustom.value='custom'; optCustom.textContent='Custom'; preset.appendChild(optCustom);
+    // builtins
+    Object.keys(PRESETS).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent = k.charAt(0).toUpperCase()+k.slice(1); preset.appendChild(o); });
+    // saved
+    Object.keys(saved).forEach(k=>{ const o=document.createElement('option'); o.value = '_user_'+k; o.textContent = k; preset.appendChild(o); });
+    if(current) preset.value = current in PRESETS ? current : (current && current.startsWith('_user_') ? current : 'custom');
+  }
+
+  refreshPresetOptions();
+
   // initialize from saved or default
   const saved = loadControls();
   if(saved) applyToUI(saved);
@@ -150,7 +173,14 @@ function wireControls(){
     preset.addEventListener('change', (ev)=>{
       const v = ev.target.value;
       if(v === 'custom') return;
-      const p = PRESETS[v];
+      // user-saved presets are prefixed with _user_
+      let p;
+      if(v.startsWith('_user_')){
+        const name = v.replace('_user_','');
+        const saved = loadSavedPresets(); p = saved[name];
+      } else {
+        p = PRESETS[v];
+      }
       if(!p) return;
       applyToUI(Object.assign({}, p, { monitor: false }));
       // apply to components
@@ -159,6 +189,21 @@ function wireControls(){
       saveControls(Object.assign(loadControls()||{}, readFromUI()));
     });
   }
+
+  // Save/Delete preset UI
+  const saveBtn = document.createElement('button'); saveBtn.textContent = 'Save Preset'; saveBtn.style.marginLeft='8px';
+  const delBtn = document.createElement('button'); delBtn.textContent = 'Delete Preset'; delBtn.style.marginLeft='8px';
+  const nameInput = document.createElement('input'); nameInput.placeholder='preset name'; nameInput.style.marginLeft='8px'; nameInput.style.width='90px';
+  if(controlsPanel){ const hdr = controlsPanel.querySelector('div'); if(hdr){ hdr.appendChild(nameInput); hdr.appendChild(saveBtn); hdr.appendChild(delBtn); } }
+
+  saveBtn.addEventListener('click', ()=>{
+    const n = (nameInput.value || '').trim(); if(!n) return alert('Enter a preset name');
+    const obj = readFromUI(); savePreset(n, obj); refreshPresetOptions(); preset.value = '_user_'+n; saveControls(Object.assign(loadControls()||{}, { preset: '_user_'+n }));
+  });
+  delBtn.addEventListener('click', ()=>{
+    const val = preset.value; if(!val || !val.startsWith('_user_')) return alert('Select a saved preset to delete');
+    const name = val.replace('_user_',''); if(!confirm('Delete preset '+name+'?')) return; deletePreset(name); refreshPresetOptions(); preset.value = 'custom';
+  });
 }
 setTimeout(wireControls, 300);
 
