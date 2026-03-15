@@ -12,14 +12,11 @@ const fileInput = document.getElementById('fileInput');
 const sceneAPI = createScene(canvas);
 sceneAPI.init();
 
-const audioStatusEl = document.getElementById('audioStatus');
-
-function setAudioStatus(text) {
-  if (audioStatusEl) audioStatusEl.textContent = text;
-}
-window.app.setAudioStatus = setAudioStatus;
-
+// ensure global app object exists early so other scripts can attach to it
 window.app = window.app || {};
+const audioStatusEl = document.getElementById('audioStatus');
+function setAudioStatus(text) { if (audioStatusEl) audioStatusEl.textContent = text; }
+window.app.setAudioStatus = setAudioStatus;
 window.app.sceneAPI = sceneAPI;
 window.app.logoCube = sceneAPI.logoCube;
 // instantiate particles and wire into the scene update loop
