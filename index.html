@@ -19,6 +19,36 @@
     <button id="gearBtn" class="gear" title="Settings">⚙</button>
   </div>
   <canvas id="glcanvas"></canvas>
+  <!-- Error overlay + global handlers (added to surface runtime errors on deploy) -->
+  <div id="errorOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);color:#fff;padding:20px;z-index:9999;overflow:auto;font-family:monospace; font-size:13px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <strong>Runtime Error</strong>
+      <button id="closeErr" style="background:#222;color:#fff;border:1px solid #444;padding:6px;border-radius:4px;">Close</button>
+    </div>
+    <pre id="errorText" style="white-space:pre-wrap;word-break:break-word"></pre>
+  </div>
+  <script>
+    (function(){
+      const overlay = document.getElementById('errorOverlay');
+      const errText = document.getElementById('errorText');
+      const closeBtn = document.getElementById('closeErr');
+      closeBtn.addEventListener('click', ()=> overlay.style.display='none');
+      function show(msg){ errText.textContent = msg; overlay.style.display='block'; }
+      window.addEventListener('error', (e)=>{
+        try{ show((e && e.message ? e.message : 'Error') + '\n' + (e && e.filename ? e.filename+':'+e.lineno+':'+e.colno+'\n' : '') + (e && e.error && e.error.stack ? e.error.stack : '')); }catch(err){}
+      });
+      window.addEventListener('unhandledrejection', (ev)=>{
+        try{ const r = ev && ev.reason ? ev.reason : ev; show('Unhandled Promise Rejection:\n' + (r && r.stack ? r.stack : (typeof r === 'string' ? r : JSON.stringify(r)))); }catch(err){}
+      });
+      window.addEventListener('DOMContentLoaded', ()=>{
+        const status = document.createElement('div');
+        status.id = 'appStatus'; status.textContent='Idle';
+        status.style.position='fixed'; status.style.left='12px'; status.style.top='48px'; status.style.zIndex=30; status.style.color='#fff'; status.style.background='transparent';
+        document.body.appendChild(status);
+        window.appStatus = status;
+      });
+    })();
+  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
