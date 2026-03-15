@@ -162,6 +162,55 @@ function wireControls(){
 }
 setTimeout(wireControls, 300);
 
+// Create the dev controls panel dynamically only in dev environments
+function createDevControls(){
+  const isDev = (window.__DEV__ === true) || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if(!isDev) return null;
+
+  // styles
+  const style = document.createElement('style');
+  style.textContent = `
+    #controlsPanel{position:fixed;right:12px;top:12px;background:rgba(0,0,0,0.6);color:#fff;padding:10px;border-radius:6px;font-size:13px;z-index:60;width:260px}
+    #controlsPanel label{display:block;margin-top:8px}
+    #controlsPanel input[type=range]{width:100%}
+    #controlsPanel .row{display:flex;justify-content:space-between;align-items:center}
+    #controlsPanel strong{font-size:14px}
+  `;
+  document.head.appendChild(style);
+
+  const panel = document.createElement('div'); panel.id = 'controlsPanel'; panel.setAttribute('data-collapsed','false');
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong>Controls (dev)</strong>
+      <div>
+        <select id="ctrlPreset" title="Presets">
+          <option value="custom">Custom</option>
+          <option value="subtle">Subtle</option>
+          <option value="punchy">Punchy</option>
+          <option value="dream">Dream</option>
+        </select>
+        <button id="ctrlToggle" aria-label="toggle controls" style="margin-left:8px">▾</button>
+      </div>
+    </div>
+    <div id="controlsBody">
+      <label>Glow Gain <input id="ctrlGlowGain" type="range" min="0" max="3" step="0.05" value="1.6"></label>
+      <label>Glow Smooth <input id="ctrlGlowSmooth" type="range" min="0" max="1" step="0.01" value="0.2"></label>
+      <label>Sensitivity <input id="ctrlSensitivity" type="range" min="0.1" max="3" step="0.05" value="1.0"></label>
+      <label>Smooth Alpha <input id="ctrlSmoothAlpha" type="range" min="0" max="1" step="0.01" value="0.15"></label>
+      <label>Beat Threshold <input id="ctrlBeatThresh" type="range" min="0.5" max="3" step="0.05" value="1.4"></label>
+      <label class="row">Monitor <input id="ctrlMonitor" type="checkbox"></label>
+      <div style="margin-top:8px;font-size:12px;opacity:0.9">Note: Monitor can cause feedback. Disabled by default for mic.</div>
+    </div>
+  `;
+  document.body.appendChild(panel);
+  // wire controls after DOM insertion
+  setTimeout(wireControls, 50);
+  return panel;
+}
+
+// create controls only in dev
+createDevControls();
+
 startBtn.addEventListener('click', async ()=>{
   try{
     // resume audio context on user gesture, then start scene
