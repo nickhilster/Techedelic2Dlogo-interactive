@@ -20,6 +20,13 @@
   </div>
   <canvas id="glcanvas"></canvas>
   <!-- Error overlay + global handlers (added to surface runtime errors on deploy) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+      }
+    }
+  </script>
   <div id="errorOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);color:#fff;padding:20px;z-index:9999;overflow:auto;font-family:monospace; font-size:13px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <strong>Runtime Error</strong>
