@@ -12,6 +12,13 @@ const fileInput = document.getElementById('fileInput');
 const sceneAPI = createScene(canvas);
 sceneAPI.init();
 
+// Auto-start rendering so users see the logo immediately (audio still requires gesture)
+try{
+  sceneAPI.start();
+  if(startBtn){ startBtn.disabled = true; startBtn.textContent = 'Running'; }
+  if(window.app && typeof window.app.setAudioStatus === 'function') window.app.setAudioStatus('Rendering');
+}catch(e){ console.warn('Auto-start render failed', e); }
+
 // ensure global app object exists early so other scripts can attach to it
 window.app = window.app || {};
 const audioStatusEl = document.getElementById('audioStatus');
